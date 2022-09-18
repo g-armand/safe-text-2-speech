@@ -4,12 +4,39 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class TranslationService {
 
     public PhonemesLoader phonemesLoader = new PhonemesLoader();
 
-    public List<String> translate(String input){
+    private Set<String> translationsSet;
+
+    public TranslationService(){
+        try {
+            this.translationsSet = FileUtils.readFileToList("src/main/java/resources/fre_latn_broad.txt", false);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public String translate(String input){
+        String output = "";
+        List<String> phonemesList = Arrays.stream(input.split("\s"))
+                .map(word ->{
+                    String toAdd = this.translationsSet.stream()
+                            .filter(entry -> Objects.equals(entry.split("\t")[0], word))
+                            .map(entry -> entry.split("\t")[1])
+                            .findFirst()
+                            .orElse("");
+                    return toAdd;
+                })
+                .collect(Collectors.toList());
+        output = String.join("", phonemesList);
+        return output;
+    }
+
+    public List<String> litteralTranslation(String input){
         List<String> output = new ArrayList<>();
         HashMap<String, String> possibleOutputs = new HashMap<>();
         possibleOutputs.put("", input);

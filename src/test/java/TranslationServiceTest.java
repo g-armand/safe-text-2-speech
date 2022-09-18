@@ -32,14 +32,21 @@ public class TranslationServiceTest {
     }
 
     @Test
-    public void testTranslate(){
-        List<String> result = translationService.translate("lol");
+    public void translateTest(){
+        String input = "démarrer la voiture";
+        String output = translationService.translate(input);
+        System.out.println(output);
+    }
+
+    @Test
+    public void litteralTranslationTest(){
+        List<String> result = translationService.litteralTranslation("lol");
         result.forEach(System.out::println);
     }
 
     @Test
-    public void testTranslateAndFrequencies(){
-        List<String> result = translationService.translate("lesnazi");
+    public void litteralTranslationAndFrequenciesTest(){
+        List<String> result = translationService.litteralTranslation("lesnazi");
         result.stream()
                 .sorted(Comparator.comparingDouble(translationService::computeProbability).reversed())
                 .forEach(System.out::println);
