@@ -3,8 +3,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.Test;
 import service.PhonemesFinder;
 import service.TranslationService;
@@ -43,38 +46,74 @@ public class TranslationServiceTest {
     }
 
     @Test
+    public void sortList() throws IOException {
+
+        File file = new File("src/main/java/resources/g2p_wiki_suffix_withdoublons.json");
+        FileReader reader = new FileReader(file);
+        BufferedReader br = new BufferedReader(reader);
+        List<String> finalList = new ArrayList<>();
+        Map<String,List<String>> map = new HashMap<>();
+        String jsonText = "";
+        String nextLine;
+        while((nextLine = br.readLine()) != null){
+            if(!nextLine.contains("{")|| !nextLine.contains("}")){
+                try{
+                    nextLine = nextLine.trim().replace("\"", "");
+                    nextLine = nextLine.replace(",", "");
+                    String[] line = nextLine.split("\s:\s");
+                    if(!map.keySet().contains(line[0])){
+                        List<String> newList = new ArrayList<String>();
+                        newList.add(line[1]);
+                        map.put(line[0], newList);
+                    } else {
+                        List<String> newList = map.get(line[0]);
+                        newList.add(line[1]);
+                        map.put(line[0], newList);
+                    }
+                } catch (Exception e){
+                    System.out.println("oups");
+                }
+
+            }
+        }
+        File file2 = new File("src/main/java/resources/g2p_wiki_suffix_withdoublons.json");
+
+        FileWriter writer = new FileWriter(file2);
+        BufferedWriter bw = new BufferedWriter(writer);
+        bw.write("{\n");
+        map.keySet().stream().sorted(String::compareTo).forEach(key -> {
+            try {
+                bw.write("\t\""+key+"\" : \""+ map.get(key)+"\",\n");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        bw.write("\n}");
+        bw.flush();
+    }
+
+    @Test
     public void testFindIfUnique() throws IOException {
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "aim", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "aims", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "ain", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "ainc", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "aincs", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "aing", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "aings", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "ains", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "aint", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "aints", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "ein", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "eins", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "eing", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "eings", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "eint", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "eints", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "en", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "ens", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "ent", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "in", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "inct", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "incts", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "ingt", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "ingts", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "inq", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "ins", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "int", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "înt", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "ym", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "yms", "ɛ̃"));
-        System.out.println(PhonemesFinder.findIfUnique("suffix", "yn", "ɛ̃"));    }
+        String word = "prefix";
+        File file = new File("src/main/java/resources/g2p_wiki_"+ word +".json");
+        FileReader reader = new FileReader(file);
+        BufferedReader br = new BufferedReader(reader);
+        String jsonText = "";
+        String nextLine;
+        while((nextLine = br.readLine()) != null){
+            jsonText += nextLine;
+        }
+        AtomicReference<String> finalJsonText = new AtomicReference<String>("{");
+        JSONObject json = new JSONObject(jsonText);
+        json.keySet().forEach(grapheme -> {
+            System.out.println(grapheme +" "+ json.getString(grapheme));
+            try {
+                System.out.println(PhonemesFinder.findIfUnique(word, grapheme, json.getString(grapheme)));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
 
     @Test
     public void createFile(){

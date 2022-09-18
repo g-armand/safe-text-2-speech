@@ -1,5 +1,7 @@
 package service;
 
+import org.junit.Test;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -11,6 +13,109 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 public class PhonemesFinder {
+
+
+    public static void findPhonemesSuffixLighter() throws IOException {
+        HashMap <String, List<String>> suffixes = PhonemesLoader.loadPhonemesSimple("suffix", true);
+        List<String> suffixesSortedKeys = suffixes.keySet().stream().sorted((a,b) -> Integer.compare(b.length(), a.length())).toList();
+//        HashMap <String, List<String>> prefixes = PhonemesLoader.loadPhonemesSimple("prefix");
+//        HashMap <String, List<String>> infixes = PhonemesLoader.loadPhonemesSimple("infix");
+        String path = "C:\\Users\\garri\\Desktop\\PsychoGLAFF-txt\\PsychoGLAFF-txt\\psychoGLAFF-correspondances-1.0.txt";
+        Set<String> fileLines = FileUtils.readFileToList(path, true);
+        fileLines.stream().forEach(line-> {
+            String lineGrapheme = line.split("\\|")[0];
+            String linePhoneme = line.split("\\|")[1];
+            try{
+                String ruleApplied = suffixesSortedKeys
+                        .stream()
+                        .filter(suffix -> lineGrapheme.endsWith(suffix))
+                        .filter(suffix -> suffixes.get(suffix)
+                                .stream()
+                                .anyMatch(linePhoneme::endsWith))
+                        .map(suffix -> suffix +"|"+suffixes.get(suffix)
+                                .stream()
+                                .filter(linePhoneme::endsWith)
+                                .findFirst().orElse(""))
+                        .findFirst()
+                        .get();
+                try{
+                    String remainingGrapheme = lineGrapheme.substring(0, lineGrapheme.length() - ruleApplied.split("\\|")[0].length());
+                    String remainingPhoneme = linePhoneme.substring(0, linePhoneme.length() - ruleApplied.split("\\|")[1].length());
+                    try {
+                        boolean a = findIfUnique("prefix", remainingGrapheme, remainingPhoneme);
+                        if (a) {
+//                            System.out.println("new prefix : "
+//                                    + remainingGrapheme
+//                                    + " -> "
+//                                    + remainingPhoneme
+//                                    +"\tfrom "
+//                                    + line
+//                                    + " <-> "
+//                                    + ruleApplied);
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                } catch(ArrayIndexOutOfBoundsException e){
+                    ;
+                }
+            } catch(NoSuchElementException e){
+                System.out.println("No existing rule for suffix of: " + lineGrapheme);
+            }
+        });
+    }
+
+
+    public static void findPhonemesPrefixLighter() throws IOException {
+        HashMap <String, List<String>> prefixes = PhonemesLoader.loadPhonemesSimple("prefix", true);
+        List<String> suffixesSortedKeys = prefixes.keySet().stream().sorted((a,b) -> Integer.compare(b.length(), a.length())).toList();
+//        HashMap <String, List<String>> prefixes = PhonemesLoader.loadPhonemesSimple("prefix");
+//        HashMap <String, List<String>> infixes = PhonemesLoader.loadPhonemesSimple("infix");
+        String path ="C:\\Users\\garri\\Desktop\\PsychoGLAFF-txt\\PsychoGLAFF-txt\\simplified\\psychoGLAFF-correspondances-simplified-1.0.txt";
+        Set<String> fileLines = FileUtils.readFileToList(path, true);
+        fileLines.stream().forEach(line-> {
+            String lineGrapheme = line.split("\\|")[0];
+            String linePhoneme = line.split("\\|")[1];
+            try{
+                String ruleApplied = suffixesSortedKeys
+                        .stream()
+                        .filter(prefix -> lineGrapheme.startsWith(prefix))
+                        .filter(prefix -> prefixes.get(prefix)
+                                .stream()
+                                .anyMatch(linePhoneme::startsWith))
+                        .map(prefix -> prefix +"|"+ prefixes.get(prefix)
+                                .stream()
+                                .filter(linePhoneme::startsWith)
+                                .findFirst().orElse(""))
+                        .findFirst()
+                        .get();
+                try{
+                    String remainingGrapheme = lineGrapheme.substring(ruleApplied.split("\\|")[0].length());
+                    String remainingPhoneme = linePhoneme.substring(ruleApplied.split("\\|")[1].length());
+                    try {
+                        boolean a = findIfUnique("suffix", remainingGrapheme, remainingPhoneme);
+//                        if (a) {
+//                            System.out.println("new suffix : "
+//                                    + remainingGrapheme
+//                                    + " -> "
+//                                    + remainingPhoneme
+//                                    +"\tfrom "
+//                                    + line
+//                                    + " <-> "
+//                                    + ruleApplied);
+//                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                } catch(ArrayIndexOutOfBoundsException ignored){
+                    ;
+                }
+            } catch(NoSuchElementException e){
+                System.out.println("No existing rule for prefix of: " + lineGrapheme);
+            }
+        });
+    }
+
 
     public static void findPhonemes() throws IOException {
         HashMap<String,String> rules = new HashMap<>();
@@ -160,23 +265,24 @@ public class PhonemesFinder {
         System.out.println(singleRules.size());
 
     }
-
     public static boolean findIfUnique(String type, String grapheme, String phoneme) throws IOException {
-        if(Objects.isNull(grapheme)
-                || Objects.isNull(phoneme)
-                || grapheme.length() == 0
-                || phoneme.length() == 0){
+        String path = "C:\\Users\\garri\\Desktop\\PsychoGLAFF-txt\\PsychoGLAFF-txt\\simplified\\psychoGLAFF-correspondances-simplified-1.0.txt";
+        Set<String> lines = FileUtils.readFileToList(path, true);
+        return findIfUnique(type, grapheme, phoneme, lines);
+    }
+
+    public static boolean findIfUnique(String type, String grapheme, String phoneme, Set<String> lines) throws IOException {
+        grapheme = grapheme.replace("#", "");
+        grapheme = grapheme.replace("-", "");
+        if(grapheme.length() == 0 || phoneme.length() == 0){
             return false;
         }
-        File file = new File("C:\\Users\\garri\\Desktop\\PsychoGLAFF-txt\\PsychoGLAFF-txt\\psychoGLAFF-correspondances-1.0.txt");
+        String path = "C:\\Users\\garri\\Desktop\\PsychoGLAFF-txt\\PsychoGLAFF-txt\\simplified\\psychoGLAFF-correspondances-simplified-1.0.txt";
         HashSet<String> otherCorrespondances = new HashSet<>();
         boolean isUnique = true;
-        FileReader fileReader = new FileReader(file);
-        BufferedReader bufferedReader = new BufferedReader(fileReader);
-        String nextLine;
         switch (type) {
             case "infix":
-                while ((nextLine = bufferedReader.readLine()) != null) {
+                for (String nextLine: lines) {
                     if (nextLine.split("\\|")[0].contains(grapheme)
                             && !nextLine.split("\\|")[0].contains("#" + grapheme)
                             && !nextLine.split("\\|")[0].contains(grapheme + "#")){
@@ -187,7 +293,7 @@ public class PhonemesFinder {
                     }
                 }
             case "prefix":
-                while ((nextLine = bufferedReader.readLine()) != null) {
+                for (String nextLine: lines) {
                     if (nextLine.split("\\|")[0].startsWith(grapheme)) {
                         if (!nextLine.split("\\|")[1].startsWith(phoneme)){
                             otherCorrespondances.add(nextLine);
@@ -196,7 +302,7 @@ public class PhonemesFinder {
                     }
                 }
             case "suffix":
-                while ((nextLine = bufferedReader.readLine()) != null) {
+                for (String nextLine: lines) {
                     if (nextLine.split("\\|")[0].endsWith(grapheme)) {
                         if(!nextLine.split("\\|")[1].endsWith(phoneme)){
                             otherCorrespondances.add(nextLine);
@@ -205,7 +311,7 @@ public class PhonemesFinder {
                     }
                 }
             case "affix":
-                while ((nextLine = bufferedReader.readLine()) != null) {
+                for (String nextLine: lines) {
                     if (nextLine.split("\\|")[0].contains(grapheme)) {
                         if(!nextLine.split("\\|")[1].contains(phoneme)){
                             otherCorrespondances.add(nextLine);
@@ -214,8 +320,10 @@ public class PhonemesFinder {
                     }
                 }
         }
-        if(!isUnique && otherCorrespondances.size()<100) {
+        if(!isUnique && otherCorrespondances.size()<5) {
             //phonemesLoader.addCustomRules(otherCorrespondances);
+            isUnique = true;
+        } else if (!isUnique&& otherCorrespondances.size()<100){
             System.out.println("few exceptions for "+ grapheme + " "+ phoneme + " " + "\n" + otherCorrespondances);
         } else if (!isUnique&& otherCorrespondances.size()>100){
             System.out.println("check the "+ grapheme +" rule better !");
@@ -237,6 +345,61 @@ public class PhonemesFinder {
                     );
         }
         return output;
+    }
+
+    public static void findPhonemesInfix() throws IOException {
+        HashMap <String, List<String>> prefixes = PhonemesLoader.loadPhonemesSimple("prefix", true);
+        List<String> prefixesSortedKeys = prefixes.keySet().stream().sorted((a,b) -> Integer.compare(b.length(), a.length())).toList();
+        HashMap <String, List<String>> suffixes = PhonemesLoader.loadPhonemesSimple("suffix", true);
+        List<String> suffixesSortedKeys = suffixes.keySet().stream().sorted((a,b) -> Integer.compare(b.length(), a.length())).toList();
+        String path = "C:\\Users\\garri\\Desktop\\PsychoGLAFF-txt\\PsychoGLAFF-txt\\psychoGLAFF-correspondances-1.0.txt";
+        Set<String> fileLines = FileUtils.readFileToList(path, true);
+        Set<String> newRules = new HashSet<>();
+        fileLines.forEach(line ->{
+            String grapheme = line.split("\\|")[0];
+            String phoneme = line.split("\\|")[1];
+            String suffixRuleApplied;
+            String prefixRuleApplied;
+            try {
+                suffixRuleApplied = suffixesSortedKeys
+                        .stream()
+                        .filter(grapheme::endsWith)
+                        .filter(suffix -> suffixes.get(suffix)
+                                .stream()
+                                .anyMatch(phoneme::endsWith))
+                        .map(suffix -> suffix + "|" + suffixes.get(suffix)
+                                .stream()
+                                .filter(phoneme::endsWith)
+                                .findFirst().orElse(""))
+                        .findFirst()
+                        .get();
+                String tempGrapheme = grapheme.substring(0, grapheme.length() - suffixRuleApplied.split("\\|")[0].length());
+                String tempPhoneme = phoneme.substring(0, phoneme.length() - suffixRuleApplied.split("\\|")[1].length());
+                prefixRuleApplied = prefixesSortedKeys
+                        .stream()
+                        .filter(tempGrapheme::startsWith)
+                        .filter(prefix -> prefixes.get(prefix)
+                                .stream()
+                                .anyMatch(tempPhoneme::startsWith))
+                        .map(prefix -> prefix + "|" + prefixes.get(prefix)
+                                .stream()
+                                .filter(tempPhoneme::startsWith)
+                                .findFirst().orElse(""))
+                        .findFirst()
+                        .get();
+                String remainingGrapheme = tempGrapheme.substring(prefixRuleApplied.split("\\|")[0].length());
+                String remainingPhoneme = tempPhoneme.substring(prefixRuleApplied.split("\\|")[1].length());
+                if(!newRules.contains(remainingGrapheme+"|"+remainingPhoneme)){
+                    boolean unique = findIfUnique("infix", remainingGrapheme, remainingPhoneme, fileLines);
+                    if (unique){
+                        newRules.add(remainingGrapheme+"|"+remainingPhoneme);
+                        System.out.println(remainingGrapheme + " -> " + remainingPhoneme + " unique: " + unique);
+                    }
+                }
+            } catch(NoSuchElementException | IOException e) {
+                System.out.println("Could not process " + line);
+            }
+        });
     }
 
 }

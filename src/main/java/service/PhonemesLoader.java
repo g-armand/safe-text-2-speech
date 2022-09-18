@@ -1,5 +1,6 @@
 package service;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -30,6 +31,51 @@ public class PhonemesLoader {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static HashMap<String, List<String>> loadPhonemesSimple(String affixType, boolean simplify) throws IOException {
+        HashMap<String, List<String>> output = new HashMap<>();
+        JSONObject json = null;
+        String path;
+        if (simplify){
+            path = "C:\\Users\\garri\\Desktop\\PsychoGLAFF-txt\\PsychoGLAFF-txt\\simplified\\g2p_wiki_"+affixType+"_withdoublons-simplified.json";
+        } else {
+            path = "src/main/java/resources/g2p_wiki_"+ affixType +"_withdoublons.json";
+        }
+        if(Files.exists(Path.of(path))){
+            File file = new File(path);
+            FileReader fileReader = new FileReader(file);
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+            String jsonText = bufferedReader.readLine();
+            String nextLine;
+            while(( nextLine = bufferedReader.readLine()) != null){
+                if(simplify){
+                    nextLine = nextLine.replace("ẽ", "1")
+                            .replace("õ", "2")
+                            .replace("ã", "3")
+                            .replace("œ̃", "4");
+                } else {
+                    nextLine = nextLine.replace("ɛ̃", "1")
+                            .replace("ɔ̃", "2")
+                            .replace("ɑ̃", "3")
+                            .replace("œ̃", "4");
+                }
+                jsonText += nextLine;
+            }
+            String text = jsonText.toString();
+            json = new JSONObject(text);
+        }
+        JSONObject finalJson = json;
+        if(Objects.nonNull(json)){
+            json.keySet().forEach(key -> {
+                JSONArray array = finalJson.getJSONArray(key);
+                List<String> listToAssign = new ArrayList<String>();
+                array.forEach(value -> listToAssign.add(value.toString()));
+                output.put(key, listToAssign);
+            });
+        }
+
+        return output;
     }
 
     public HashMap<String, HashMap<String, List<String>>> loadPhonemes(String language) throws IOException {
